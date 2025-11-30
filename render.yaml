@@ -8,15 +8,12 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: FIREBASE_PROJECT_ID
-        value: raaz-cf574
-      - key: FIREBASE_PRIVATE_KEY_ID
-        fromSecret: FIREBASE_PRIVATE_KEY_ID
-      - key: FIREBASE_PRIVATE_KEY
-        fromSecret: FIREBASE_PRIVATE_KEY
-      - key: FIREBASE_CLIENT_EMAIL
-        fromSecret: FIREBASE_CLIENT_EMAIL
-      - key: FIREBASE_CLIENT_ID
-        fromSecret: FIREBASE_CLIENT_ID
-      - key: FIREBASE_CLIENT_CERT_URL
-        fromSecret: FIREBASE_CLIENT_CERT_URL
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        fromSecret: FIREBASE_SERVICE_ACCOUNT_JSON
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
