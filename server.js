@@ -1,150 +1,187 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
+// server.js
 require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
+const path = require('path');
 
 const app = express();
+app.use(helmet());
+app.use(cors());
+app.use(bodyParser.json());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000 // Increased limit for API
+// Config from env or defaults
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'replace_this_with_strong_secret';
+const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || '10', 10);
+
+// DB file in working directory (on Render use persistent disk if available)
+const DB_FILE = process.env.DB_FILE || path.join(__dirname, 'data.sqlite3');
+
+const db = new sqlite3.Database(DB_FILE, (err) => {
+  if (err) {
+    console.error('Failed open DB:', err);
+    process.exit(1);
+  }
+  console.log('Connected to SQLite DB:', DB_FILE);
 });
 
-// Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://your-app.render.com', 'https://your-android-app.com'],
-  credentials: true
-}));
-app.use(compression());
-app.use(morgan('combined'));
-app.use(limiter);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Create users table if not exists
+db.serialize(() => {
+  db.run(
+    `CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT,
+      created_at TEXT NOT NULL
+    )`,
+    (err) => {
+      if (err) console.error('Create table error:', err);
+      else console.log('Users table ready');
+    }
+  );
+});
 
-// Test Firebase connection
-try {
-  const { db } = require('./config/firebase');
-  console.log('🔥 Firebase connection test passed');
-} catch (error) {
-  console.error('🔥 Firebase connection failed:', error.message);
+// Helper: create JWT
+function createToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const videoRoutes = require('./routes/videos');
-const hadithRoutes = require('./routes/hadith');
-const quranRoutes = require('./routes/quran');
-const prayerRoutes = require('./routes/prayer');
+// Middleware: authenticate
+function authenticate(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ status: 'error', message: 'Missing token' });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/videos', videoRoutes);
-app.use('/api/hadith', hadithRoutes);
-app.use('/api/quran', quranRoutes);
-app.use('/api/prayer', prayerRoutes);
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) return res.status(401).json({ status: 'error', message: 'Invalid token' });
+    req.user = decoded;
+    next();
+  });
+}
 
-// Health check endpoint with Firebase test
-app.get('/api/health', async (req, res) => {
+// Health
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'Auth API running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
+// Register
+app.post('/api/register', async (req, res) => {
   try {
-    const { db } = require('./config/firebase');
-    
-    // Test database connection
-    await db.ref('.info/connected').once('value');
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Islamic Community API is running',
-      database: 'connected',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
+    const { email, password, name } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ status: 'error', message: 'email and password required' });
+    }
+    // basic email lowercase
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // check if exists
+    db.get('SELECT id FROM users WHERE email = ?', [normalizedEmail], async (err, row) => {
+      if (err) {
+        console.error('DB error', err);
+        return res.status(500).json({ status: 'error', message: 'Database error' });
+      }
+      if (row) {
+        return res.status(400).json({ status: 'error', message: 'Email already registered' });
+      }
+
+      // hash password
+      const hash = await bcrypt.hash(password, SALT_ROUNDS);
+      const id = uuidv4();
+      const createdAt = new Date().toISOString();
+
+      db.run(
+        'INSERT INTO users (id, email, password, name, created_at) VALUES (?, ?, ?, ?, ?)',
+        [id, normalizedEmail, hash, name || null, createdAt],
+        function (insertErr) {
+          if (insertErr) {
+            console.error('Insert error', insertErr);
+            return res.status(500).json({ status: 'error', message: 'Failed to create user' });
+          }
+
+          const token = createToken({ id, email: normalizedEmail });
+          return res.json({
+            status: 'success',
+            message: 'User registered',
+            user: { id, email: normalizedEmail, name: name || null, created_at: createdAt },
+            token
+          });
+        }
+      );
     });
-  } catch (error) {
-    res.status(200).json({
-      status: 'success',
-      message: 'Islamic Community API is running',
-      database: 'disconnected',
-      error: error.message,
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
-    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });
 
-// API Documentation
-app.get('/api', (req, res) => {
-  res.json({
-    message: 'Welcome to Islamic Community API',
-    version: '1.0.0',
-    endpoints: {
-      auth: {
-        'POST /register': 'Register new user',
-        'POST /login': 'Login user',
-        'GET /profile': 'Get user profile (Auth required)'
-      },
-      videos: {
-        'GET /': 'Get all videos',
-        'GET /latest': 'Get latest videos',
-        'POST /': 'Add video (Admin)'
-      },
-      hadith: {
-        'GET /': 'Get all hadith',
-        'GET /daily': 'Get daily hadith',
-        'POST /': 'Add hadith (Admin)'
-      },
-      quran: {
-        'GET /surahs': 'Get all Surahs',
-        'GET /surahs/:number': 'Get specific Surah',
-        'GET /audio/:reciter/:surah': 'Get audio URL'
-      },
-      prayer: {
-        'GET /times': 'Get prayer times by city',
-        'GET /guide': 'Get prayer guide'
+// Login
+app.post('/api/login', (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ status: 'error', message: 'email and password required' });
+    }
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    db.get('SELECT id, email, password, name, created_at FROM users WHERE email = ?', [normalizedEmail], async (err, user) => {
+      if (err) {
+        console.error('DB error', err);
+        return res.status(500).json({ status: 'error', message: 'Database error' });
       }
-    },
-    documentation: 'Add your documentation URL here'
+      if (!user) {
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+      }
+
+      const match = await bcrypt.compare(password, user.password);
+      if (!match) {
+        return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+      }
+
+      const token = createToken({ id: user.id, email: user.email });
+      return res.json({
+        status: 'success',
+        message: 'Login successful',
+        user: { id: user.id, email: user.email, name: user.name, created_at: user.created_at },
+        token
+      });
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ status: 'error', message: 'Server error' });
+  }
+});
+
+// Protected route example
+app.get('/api/me', authenticate, (req, res) => {
+  const id = req.user.id;
+  db.get('SELECT id, email, name, created_at FROM users WHERE id = ?', [id], (err, user) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ status: 'error', message: 'Database error' });
+    }
+    if (!user) return res.status(404).json({ status: 'error', message: 'User not found' });
+    res.json({ status: 'success', user });
   });
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.redirect('/api');
+// Simple logout (client should discard token) — optionally you can implement token blacklist
+app.post('/api/logout', (req, res) => {
+  res.json({ status: 'success', message: 'Logout: discard token on client' });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    status: 'error',
-    message: 'Route not found',
-    path: req.originalUrl
-  });
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  res.status(500).json({
-    status: 'error',
-    message: 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { 
-      error: error.message,
-      stack: error.stack 
-    })
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Islamic Community API running on port ${PORT}`);
-  console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-});
-
-module.exports = app;
