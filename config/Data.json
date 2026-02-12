@@ -4,7 +4,7 @@
     "type": "Islamic",
     "orientation": "portrait",
     "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/content.swf",
-    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/controlsConfig.json",
+    "config": "https://github.com/bindassrahoo27-svg/Raax/releases/download/Data/game_patch_4.2.0.20753.pak",
     "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/thumb.jpg"
   },
   {
@@ -27,7 +27,7 @@
     "name": "Quran Stories",
     "type": "Islamic",
     "orientation": "landscape",
-    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/content.swf",
+    "url": "https://github.com/bindassrahoo27-svg/Raax/releases/download/Data/game_patch_4.2.0.20753.pak",
     "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/controlsConfig.json",
     "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/thumb.jpg"
   },
