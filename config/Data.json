@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Namaz Guide",
+    "type": "Islamic",
+    "orientation": "portrait",
+    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/content.swf",
+    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/controlsConfig.json",
+    "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/NamazGuide/thumb.jpg"
+  },
+  {
+    "name": "Ramadan Special",
+    "type": "Islamic",
+    "orientation": "portrait",
+    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/Ramadan/content.swf",
+    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/Ramadan/controlsConfig.json",
+    "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/Ramadan/thumb.jpg"
+  },
+  {
+    "name": "Daily Dua",
+    "type": "Islamic",
+    "orientation": "portrait",
+    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/DailyDua/content.swf",
+    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/DailyDua/controlsConfig.json",
+    "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/DailyDua/thumb.jpg"
+  },
+  {
+    "name": "Quran Stories",
+    "type": "Islamic",
+    "orientation": "landscape",
+    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/content.swf",
+    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/controlsConfig.json",
+    "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/QuranStories/thumb.jpg"
+  },
+  {
+    "name": "99 Names of Allah",
+    "type": "Islamic",
+    "orientation": "portrait",
+    "url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/AsmaulHusna/content.swf",
+    "config": "https://raw.githubusercontent.com/yourusername/islamic-content/main/AsmaulHusna/controlsConfig.json",
+    "img-url": "https://raw.githubusercontent.com/yourusername/islamic-content/main/AsmaulHusna/thumb.jpg"
+  }
+]
