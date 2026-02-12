@@ -1,0 +1,24 @@
+[
+  {
+    "type": "button",
+    "x": 0.85,
+    "y": 0.80,
+    "sendKey": "S",
+    "style": "A",
+    "shape": "CIRCLE",
+    "icon": "HAND",
+    "rotation": 0,
+    "sizeDp": 120
+  },
+  {
+    "type": "button",
+    "x": 0.70,
+    "y": 0.65,
+    "sendKey": "R",
+    "style": "A",
+    "shape": "CIRCLE",
+    "icon": "KEY",
+    "rotation": 0,
+    "sizeDp": 100
+  }
+]
