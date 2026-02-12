@@ -1,0 +1,14 @@
+[
+  {
+    "link": "https://yourdomain.com/islamic/update-v1.2.zip",
+    "type": "stable",
+    "message": "- Added Bayan Section\n- Added Tasbeeh Counter\n- UI Improved",
+    "version": "102"
+  },
+  {
+    "link": "https://yourdomain.com/islamic/update-beta.zip",
+    "type": "beta",
+    "message": "- Testing New Quran Audio Player\n- Experimental Features",
+    "version": "103"
+  }
+]
